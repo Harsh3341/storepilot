@@ -48,6 +48,10 @@ class BillingTests(unittest.TestCase):
             with self.subTest(quantity=quantity), self.assertRaisesRegex(ValueError, "gram"):
                 calculate_bill(self.catalogue, [Selection("SUGAR-LOOSE", quantity, unit)])
 
+    def test_rejects_a_gram_quantity_that_would_underflow_to_zero(self):
+        with self.assertRaisesRegex(ValueError, "gram"):
+            calculate_bill(self.catalogue, [Selection("SUGAR-LOOSE", "1e-9999999", "g")])
+
     def test_rejects_units_that_do_not_match_the_product(self):
         for code, unit in [("SUGAR-LOOSE", "piece"), ("SUGAR-PACK", "kg"), ("SUGAR-LOOSE", "bag")]:
             with self.subTest(code=code, unit=unit), self.assertRaises(ValueError):

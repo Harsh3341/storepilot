@@ -34,6 +34,8 @@ def selling_quantity(product: Product, selection: Selection) -> Decimal:
     unit = product.unit if selection.unit is None else selection.unit.strip().casefold()
     if product.unit == "kg":
         if unit == "g":
+            if quantity != quantity.to_integral_value():
+                raise ValueError("Loose quantities must be accurate to a whole gram.")
             quantity = quantity / Decimal("1000")
         elif unit != "kg":
             raise ValueError("Loose goods accept 'kg' or 'g'.")
