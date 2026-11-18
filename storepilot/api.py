@@ -1,9 +1,12 @@
 """HTTP endpoints around StorePilot's existing catalogue and billing logic."""
 
+import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from storepilot.billing import Selection, calculate_bill
@@ -68,11 +71,37 @@ class BillPreviewResponse(BaseModel):
     total: str
 
 
-def create_app(catalogue_path: Path = DEFAULT_CATALOGUE) -> FastAPI:
-    """Load the catalogue once. Invalid data prevents the server from starting."""
-    catalogue = load_catalogue(catalogue_path)
-    app = FastAPI(title="StorePilot API", version="0.2.0",
+def create_app(catalogue_path: Path = DEFAULT_CATALOGUE,
+               database_path: Path | str | None = None,
+               frontend_directory: Path | None = None) -> FastAPI:
+    """Create a persistent store; custom test catalogues are isolated by default."""
+    from storepilot.store import Store
+    from storepilot.store_api import make_store_router
+
+    seed = load_catalogue(catalogue_path)
+    if database_path is None:
+        database_path = (os.environ.get("STOREPILOT_DB", str(DEFAULT_CATALOGUE.parent / "storepilot.sqlite3"))
+                         if catalogue_path == DEFAULT_CATALOGUE else ":memory:")
+    store = Store(database_path, seed)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        try:
+            yield
+        finally:
+            store.close()
+
+    app = FastAPI(title="StorePilot API", version="0.3.0", lifespan=lifespan,
                   description="Product catalogue and draft billing for a general store.")
+    app.state.store = store
+    app.include_router(make_store_router(store))
+
+    @app.middleware("http")
+    async def prevent_store_caching(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith(("/api/", "/products", "/bills", "/health")):
+            response.headers["Cache-Control"] = "no-store"
+        return response
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -82,7 +111,7 @@ def create_app(catalogue_path: Path = DEFAULT_CATALOGUE) -> FastAPI:
     def products(q: str = "") -> list[ProductResponse]:
         return [ProductResponse(code=product.code, name=product.name,
                                 unit=product.unit, price=f"{product.price:.2f}")
-                for product in search_products(catalogue, q)]
+                for product in search_products(store.catalogue(), q)]
 
     @app.post("/bills/preview", response_model=BillPreviewResponse,
               summary="Calculate a draft bill",
@@ -90,7 +119,7 @@ def create_app(catalogue_path: Path = DEFAULT_CATALOGUE) -> FastAPI:
     def preview_bill(request: BillPreviewRequest) -> BillPreviewResponse:
         selections = [Selection(item.product_code, item.quantity, item.unit) for item in request.items]
         try:
-            bill = calculate_bill(catalogue, selections)
+            bill = calculate_bill(store.catalogue(), selections)
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
         return BillPreviewResponse(
@@ -101,4 +130,7 @@ def create_app(catalogue_path: Path = DEFAULT_CATALOGUE) -> FastAPI:
             total=f"{bill.total:.2f}",
         )
 
+    frontend = frontend_directory or DEFAULT_CATALOGUE.parent.parent / "frontend" / "dist"
+    if frontend.is_dir():
+        app.mount("/", StaticFiles(directory=frontend, html=True), name="web")
     return app
