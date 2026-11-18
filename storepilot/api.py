@@ -92,7 +92,7 @@ def create_app(catalogue_path: Path = DEFAULT_CATALOGUE,
             store.close()
 
     app = FastAPI(title="StorePilot API", version="0.3.0", lifespan=lifespan,
-                  description="Product catalogue and draft billing for a general store.")
+                  description="Inventory, billing, customer credit, receipts, and orders for a local general store.")
     app.state.store = store
     app.include_router(make_store_router(store))
 

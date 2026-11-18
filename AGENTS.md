@@ -2,7 +2,7 @@
 
 ## Project
 
-StorePilot will help a single general-store owner manage products, loose and packaged sales, inventory, customer orders, and credit balances on an Android phone. The current milestone is a Python command-line product catalogue and draft-bill calculator. The intended later architecture is an online PWA, FastAPI, and PostgreSQL.
+StorePilot helps a single general-store owner manage products, sales, inventory, orders, and credit balances. The current milestone is a React PWA interface, FastAPI, and SQLite. Public deployment requires HTTPS and production authentication; PostgreSQL and AI list extraction are later milestones.
 
 ## Commands
 
@@ -12,9 +12,12 @@ Run from the repository root with Python 3.12 or newer:
 python -m unittest discover -s tests -v
 python -m storepilot --demo
 python -m storepilot
+python -m uvicorn storepilot.api:create_app --factory --host 127.0.0.1 --port 8000
+cd frontend
+pnpm build
 ```
 
-There are no third-party dependencies in the first milestone. See README.md for Windows setup.
+Install Python dependencies from requirements-dev.txt and frontend dependencies from the committed pnpm lockfile. See README.md for Windows setup.
 
 ## Code conventions
 
@@ -24,12 +27,9 @@ There are no third-party dependencies in the first milestone. See README.md for 
 - Round each line to two decimal places with ROUND_HALF_UP, then sum rounded lines.
 - Keep historical bill names and prices independent of later catalogue edits.
 - Test observable financial behavior and invalid-input recovery before adding behavior.
-- Sample prices are illustrative. Draft bills must say that no sale, stock, or payment has been saved.
-- Add stock, credit, external integrations, and the mobile interface only in their approved milestones.
-
-## Learning workflow
-
-The learner has three years of C#/.NET experience and is new to Python. Explain unfamiliar Python concepts with useful C# comparisons. Prefer small runnable changes and concrete exercises. Keep the learner's independent practice separate from the working reference application.
+- Sample prices are illustrative; new stores start with zero stock. Draft bills are unsaved; receipts describe saved sales.
+- Persist money as integer paise and stock as integer grams or pieces. Checkout must atomically deduct aggregate stock, save receipt snapshots, record credit, and complete any linked order.
+- Preserve idempotency for sale, stock, and repayment retries. Never cache financial API responses or silently queue writes offline.
 
 ## Git workflow
 
@@ -38,3 +38,4 @@ The learner has three years of C#/.NET experience and is new to Python. Explain 
 - Do not add generated-by attribution, assistant signatures, or optional co-author trailers.
 - Run the checks appropriate to a feature before committing. Do not commit a known failing feature or temporary execution output.
 - Keep credentials, virtual environments, caches, and local configuration out of commits.
+- Keep learning notes, plans, QA artifacts, and practice local, excluded through .git/info/exclude.

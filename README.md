@@ -1,60 +1,69 @@
 # StorePilot
 
-A general-store application for one shopkeeper. The intended Android app will manage billing, stock, orders, and customer dues.
+Billing, inventory, customer dues, and orders for a single general-store owner. The first MVP uses a mobile React interface and a Python/FastAPI backend backed by SQLite.
 
-Milestone 1 is a Python command-line catalogue and **draft-bill calculator**. It includes 20 illustrative products, loose goods in grams/kilograms, packaged goods in whole pieces, search, and precise decimal calculations. Drafts are not saved sales or tax invoices; stock and payments are not recorded yet.
+- Sell loose goods in grams/kg and packaged goods in whole pieces, with catalogue prices and saved receipts.
+- Receive stock, record explained adjustments, and inspect movements and low-stock alerts.
+- Track customer credit, partial payments, and cash/UPI repayments.
+- Keep walk-in orders or pasted WhatsApp lists, and complete them through billing.
+- Reopen, print, copy, or share receipts from sales history.
 
 ## Run on Windows
 
-Open PowerShell at the repository root. If `.venv` already exists, run:
-
-```powershell
-.\.venv\Scripts\python.exe -m storepilot --demo
-.\.venv\Scripts\python.exe -m storepilot
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-```
-
-For a fresh checkout, first install Python 3.12 or newer from [python.org](https://www.python.org/downloads/windows/), then create the environment:
+Install Python 3.12+ and Node.js 22.12+ (or 24+). From this repository in PowerShell:
 
 ```powershell
 python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+cd frontend
+corepack pnpm install --frozen-lockfile
+corepack pnpm build
+cd ..
+.\.venv\Scripts\python.exe -m uvicorn storepilot.api:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-The current milestone has no third-party packages to install. Using the environment executable directly avoids PowerShell activation-policy changes. On macOS/Linux, use `.venv/bin/python` instead.
+If pnpm is installed directly, use `pnpm` instead of `corepack pnpm`. Open **http://127.0.0.1:8000**. Keep the server terminal running. On macOS/Linux use `.venv/bin/python`.
 
-## Try a bill
+For development, run the backend above and `pnpm dev` inside frontend in another terminal. Vite runs at http://127.0.0.1:5173 and proxies the store API to port 8000.
 
-Enter these commands in the interactive app:
+Frontend source is formatted TypeScript and JSX in `frontend/src`. Run `pnpm format` to format edits and `pnpm format:check` to verify style. Vite minifies only the generated production files in `frontend/dist`.
 
-```text
-search sugar
-SUGAR-LOOSE 250 g
-SUGAR-PACK-1KG 2
-OIL-1L 2
-done
-```
+## First use and data
 
-The illustrative total is **INR 422.00**. `list` shows the catalogue; `search NAME` finds matching codes or names; `quit` discards a draft. Loose quantities default to kg; packaged quantities default to piece. Specify `g` explicitly when entering grams.
+New databases contain 20 illustrative products with **zero stock**. In Stock, edit prices to match the store and receive the actual opening stock. Give each brand/pack size a separate product code. Editing seed JSON after database creation does not update stored products; use Stock.
 
-The supplied prices are examples. Replace them with actual store prices in [data/catalogue.json](data/catalogue.json). Prices are JSON strings, such as `"48.00"`, to preserve decimal values. Reload the app after saving changes. Each product needs a unique uppercase code, name, unit (`kg` or `piece`), and positive price. Different brands and pack sizes need distinct codes.
-
-You can also load a separate file:
+Records persist in `data/storepilot.sqlite3`. For a separate database, set an absolute path before starting the server:
 
 ```powershell
-.\.venv\Scripts\python.exe -m storepilot --catalogue data\catalogue.json
+$env:STOREPILOT_DB = 'E:\Projects\AI\data\my-store.sqlite3'
 ```
 
-Prices have at most two decimal places. Loose quantities must represent whole grams; packaged quantities must be whole numbers. Input prices and quantities are positive and at most 1,000,000. Round each line to the nearest paisa with halves rounded up, then sum those lines. Names and prices are copied into a draft so later catalogue edits do not alter it.
+Stop the server before copying the SQLite database for a backup. Keep backups somewhere safe; database files are excluded from Git. Preserve the database when updating the code.
 
-## Find the code
+Save a bill after confirming quantities and amount received. A balance due requires a customer. Stock is deducted only when saved. Retrying the same request does not create another sale. Names and prices on saved receipts stay unchanged after catalogue edits. Cash/UPI records payments manually; it does not process bank transfers.
+
+Paste a WhatsApp list into Orders, then select the actual products while billing. Automatic WhatsApp ingestion and AI extraction are later features. These are simple store receipts; GST/tax invoicing, returns, multi-user access, barcode scanning, and payment-provider integration are outside this MVP.
+
+The server is a **local MVP with no login**. Public use requires production authentication, HTTPS, deployment, and backups. Android home-screen installation is supported by the PWA assets when hosted over HTTPS. The localhost address only works on the computer running the server.
+
+## Checks and API
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m storepilot --demo
+cd frontend
+pnpm build
+```
+
+API documentation: http://127.0.0.1:8000/docs. Existing `/products`, `/bills/preview`, and the CLI remain available. CLI bills are unsaved drafts and do not affect the database.
+
+Money uses Decimal calculations and integer paise in storage; stock uses integer grams or pieces. Sales, stock updates, and repayments require retry IDs and run in transactions.
 
 | File | Responsibility |
 |---|---|
-| `storepilot/catalogue.py` | Product validation, JSON loading, search |
-| `storepilot/billing.py` | Unit conversion, bill snapshots, totals |
-| `storepilot/__main__.py` | Terminal commands and display |
-| `data/catalogue.json` | Editable sample products |
-| `tests/` | Financial behavior and command-line acceptance cases |
-| `AGENTS.md` | Repository conventions and development commands |
-
-The intended next milestone adds a FastAPI interface and saved products/bills. Stock movements, payment ledgers, digital orders, AI extraction, and the mobile interface follow in separately designed milestones.
+| storepilot/catalogue.py, billing.py | Product validation, unit conversion, bill calculation |
+| storepilot/database.py, store.py | Storage and transactional business rules |
+| storepilot/api.py, store_api.py | HTTP routes and web asset serving |
+| frontend/src/ | Mobile store interface |
+| frontend/public/ | PWA manifest, icons, app-shell service worker |
+| tests/ | Domain, transaction, API, and persistence checks |
