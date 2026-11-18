@@ -1,0 +1,22 @@
+[
+  {"code": "SUGAR-LOOSE", "name": "Loose sugar", "unit": "kg", "price": "48.00"},
+  {"code": "RICE-LOOSE", "name": "Loose rice", "unit": "kg", "price": "60.00"},
+  {"code": "ATTA-LOOSE", "name": "Loose wheat flour", "unit": "kg", "price": "42.00"},
+  {"code": "DAL-LOOSE", "name": "Loose toor dal", "unit": "kg", "price": "120.00"},
+  {"code": "SALT-LOOSE", "name": "Loose salt", "unit": "kg", "price": "20.00"},
+  {"code": "SUGAR-PACK-1KG", "name": "Sugar 1 kg packet", "unit": "piece", "price": "55.00"},
+  {"code": "OIL-1L", "name": "Oil 1 litre bottle", "unit": "piece", "price": "150.00"},
+  {"code": "TEA-250G", "name": "Tea 250 g packet", "unit": "piece", "price": "125.00"},
+  {"code": "COFFEE-50G", "name": "Coffee 50 g jar", "unit": "piece", "price": "90.00"},
+  {"code": "BISCUITS-100G", "name": "Biscuits 100 g packet", "unit": "piece", "price": "10.00"},
+  {"code": "MILK-1L", "name": "Milk 1 litre carton", "unit": "piece", "price": "60.00"},
+  {"code": "BREAD-400G", "name": "Bread 400 g packet", "unit": "piece", "price": "45.00"},
+  {"code": "SOAP-100G", "name": "Soap 100 g bar", "unit": "piece", "price": "35.00"},
+  {"code": "DETERGENT-500G", "name": "Detergent 500 g packet", "unit": "piece", "price": "65.00"},
+  {"code": "TOOTHPASTE-100G", "name": "Toothpaste 100 g tube", "unit": "piece", "price": "60.00"},
+  {"code": "SHAMPOO-90ML", "name": "Shampoo 90 ml bottle", "unit": "piece", "price": "75.00"},
+  {"code": "SALT-PACK-1KG", "name": "Salt 1 kg packet", "unit": "piece", "price": "25.00"},
+  {"code": "MASALA-100G", "name": "Masala 100 g packet", "unit": "piece", "price": "50.00"},
+  {"code": "MATCHBOX", "name": "Matchbox", "unit": "piece", "price": "2.00"},
+  {"code": "NOODLES-70G", "name": "Noodles 70 g packet", "unit": "piece", "price": "15.00"}
+]
