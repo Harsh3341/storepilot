@@ -2692,6 +2692,85 @@ main {
 }
 
 /* Owner sign-in shares the shop's controls and green palette. */
+.order-form-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.extract-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.extract-actions small,
+.extraction-hint,
+.order-draft > p {
+  color: #68766d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.extraction-hint {
+  margin: 10px 0 18px;
+}
+.order-draft {
+  margin-top: 18px;
+}
+.order-draft h3 {
+  font-size: 16px;
+  margin: 0 0 6px;
+}
+.draft-row {
+  border: 1px solid #dce4dc;
+  background: #f8faf7;
+  border-radius: 12px;
+  padding: 14px;
+  margin: 14px 0;
+}
+.draft-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.draft-row .field {
+  margin-bottom: 12px;
+  min-width: 0;
+}
+.draft-row select {
+  width: 100%;
+  min-width: 0;
+}
+.draft-quantity {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.draft-issue {
+  color: #965418;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 6px;
+}
+.draft-review {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 18px 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.draft-review input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-top: 2px;
+}
+
 .auth-layout {
   min-height: 100dvh;
   display: flex;

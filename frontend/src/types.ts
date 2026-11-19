@@ -10,6 +10,28 @@ export type Product = {
   low_stock: boolean;
 };
 export type Item = { product_code: string; quantity: string; unit: InputUnit };
+export type ExtractedRow = {
+  original: string;
+  product_code: string | null;
+  quantity: string | null;
+  unit: InputUnit;
+  reason: string | null;
+};
+export type DraftRow = ExtractedRow & { id: number };
+export type Extraction = {
+  rows: ExtractedRow[];
+  requires_review: true;
+  warnings: string[];
+};
+export type ExtractionStatus = {
+  enabled: boolean;
+  available: boolean;
+  reason: string | null;
+  remaining: number;
+  daily_limit: number;
+  max_text_length: number;
+  cooldown_seconds: number;
+};
 export type Line = {
   product_code: string;
   name: string;

@@ -45,7 +45,17 @@ Preserve the database when updating the code. Use the backup command below to ta
 
 Save a bill after confirming quantities and amount received. A balance due requires a customer. Stock is deducted only when saved. Retrying the same request does not create another sale. Names and prices on saved receipts stay unchanged after catalogue edits. Cash/UPI records payments manually; it does not process bank transfers.
 
-Paste a WhatsApp list into Orders, then select the actual products while billing. Automatic WhatsApp ingestion and AI extraction are later features. These are simple store receipts; GST/tax invoicing, returns, multi-user access, barcode scanning, and payment-provider integration are outside this MVP.
+Paste a WhatsApp list into Orders, extract suggested items, then correct and review the rows before saving. Open the saved order in a bill to check prices and complete the sale. Note-only orders remain available. Automatic WhatsApp ingestion is a later feature. These are simple store receipts; GST/tax invoicing, returns, multi-user access, barcode scanning, and payment-provider integration are outside this MVP.
+
+## Shopping-list suggestions with Groq
+
+Create a key on [Groq's Free plan](https://console.groq.com/keys) and set `GROQ_API_KEY` in the ignored local `.env` or the hosting service's environment settings. Restart/redeploy after changing it. `STOREPILOT_AI_MODEL` defaults to `openai/gpt-oss-120b`; choose a model that supports [strict structured outputs](https://console.groq.com/docs/structured-outputs). The feature is optional; orders and billing work without a provider key.
+
+In **Orders → New order**, paste an English, Hindi, or Hinglish list and choose **Extract items**. Compare every row with the original request. Choose exact products/pack sizes, fill missing quantities/units, and remove unwanted rows. Check the review box before saving items. Editing the request clears the previous draft. You can add rows manually or choose **Use note only** after an error. Retries of an unchanged order save return the original order.
+
+Only the pasted request and catalogue codes, names, and units go to Groq. Keep personal and payment details out of the pasted text. Product prices, stock, customers, balances, and the API key are not included in the model request. Suggestions never change inventory, sales, or credit; prices and estimates come from the current catalogue when an order is saved. Stock changes only at checkout.
+
+Free testing is bounded to 25 attempts per India calendar day, a 10-second cooldown, 2000 characters per extraction, and a catalogue of at most 100 products / 12000 UTF-8 bytes. Failed provider attempts count toward the limit, with no automatic retry. Groq's own [account limits](https://console.groq.com/docs/rate-limits) also apply. Longer notes (up to 5000 characters) and larger catalogues can use manual entry. Model output can miss items or make mistakes; review the entire original request before saving.
 
 The owner account protects store APIs and API documentation. Sessions use HttpOnly cookies and expire after seven days. A password reset revokes existing sessions. Unconfigured development databases allow local use without login; production refuses startup without an owner and an HTTPS origin.
 
@@ -113,6 +123,7 @@ Money uses Decimal calculations and integer paise in storage; stock uses integer
 | storepilot/database.py, postgres.py, store.py | SQLite/PostgreSQL storage and transactional business rules |
 | storepilot/api.py, store_api.py | HTTP routes and web asset serving |
 | storepilot/auth.py, auth_api.py, settings.py | Owner sessions and deployment configuration |
+| storepilot/groq.py, order_extraction.py, extraction_api.py | Bounded model requests and validated order suggestions |
 | storepilot/backup.py, manage.py | Portable backups, restore, migration, and owner setup |
 | Dockerfile, render.yaml | Container build and free Render deployment |
 | frontend/src/ | Mobile store interface |
