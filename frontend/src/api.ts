@@ -1,11 +1,64 @@
 import { useEffect, useRef, useState } from 'react';
+
+export type AuthSession = {
+  enabled: boolean;
+  authenticated: boolean;
+  username: string | null;
+  csrf_token: string | null;
+};
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+// Cookies are managed by the browser. The CSRF value lives only in this tab.
+let csrfToken: string | null = null;
+let sessionGeneration = 0;
+const expiredListeners = new Set<() => void>();
+
+export function setCsrfToken(token: string | null) {
+  csrfToken = token;
+  sessionGeneration += 1;
+}
+
+export function onSessionExpired(listener: () => void) {
+  expiredListeners.add(listener);
+  return () => {
+    expiredListeners.delete(listener);
+  };
+}
+
 export async function api<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const requestGeneration = sessionGeneration;
+  const method = (options.method || 'GET').toUpperCase();
+  const headers = new Headers(options.headers);
+  headers.set('Content-Type', 'application/json');
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && csrfToken) {
+    headers.set('X-CSRF-Token', csrfToken);
+  }
   const response = await fetch(url, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers,
   });
   const body = await response.json().catch(() => null);
   if (!response.ok) {
+    const isAuthRoute = url.startsWith('/api/auth/');
+    if (
+      response.status === 401 &&
+      !isAuthRoute &&
+      requestGeneration === sessionGeneration
+    ) {
+      setCsrfToken(null);
+      expiredListeners.forEach((listener) => listener());
+    }
     const detail = body?.detail;
     const message =
       typeof detail === 'string'
@@ -18,7 +71,7 @@ export async function api<T>(url: string, options: RequestInit = {}): Promise<T>
               )
               .join('. ')
           : 'Could not complete this action. Please try again.';
-    throw new Error(message);
+    throw new ApiError(message, response.status);
   }
   return body as T;
 }

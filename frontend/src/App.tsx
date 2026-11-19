@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ShoppingBasket,
   Package,
@@ -8,6 +8,7 @@ import {
   Store,
   ArrowUpRight,
   RefreshCw,
+  LogOut,
 } from 'lucide-react';
 import { useData } from './api';
 import { money } from './format';
@@ -18,7 +19,7 @@ import { Customers } from './Customers';
 import { Orders } from './Orders';
 import { History } from './History';
 import { Receipt } from './Receipt';
-import { ErrorNotice } from './components';
+import { Button, ErrorNotice } from './components';
 
 const pages = [
   { id: 'sell', label: 'Sell', icon: ShoppingBasket },
@@ -27,12 +28,29 @@ const pages = [
   { id: 'orders', label: 'Orders', icon: ClipboardList },
   { id: 'history', label: 'Sales', icon: ReceiptText },
 ] as const;
-export default function App() {
+type AppProps = {
+  ownerName?: string | null;
+  sessionVersion?: number;
+  onLogout?: () => void;
+};
+
+export default function App({
+  ownerName = null,
+  sessionVersion = 0,
+  onLogout,
+}: AppProps = {}) {
   const [page, setPage] = useState<Page>('sell');
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [version, setVersion] = useState(0);
   const [order, setOrder] = useState<Order | null>(null);
   const [receipt, setReceipt] = useState<Sale | null>(null);
+  const previousSession = useRef(sessionVersion);
+  useEffect(() => {
+    if (previousSession.current !== sessionVersion) {
+      previousSession.current = sessionVersion;
+      setVersion((version) => version + 1);
+    }
+  }, [sessionVersion]);
   const summary = useData<Summary>('/api/summary', version);
   const refresh = () => setVersion((v) => v + 1);
   const openOrder = (value: Order) => {
@@ -90,7 +108,7 @@ export default function App() {
             </strong>
           </div>
           <div className="topbar-right">
-            <span>
+            <span className="header-date">
               {new Date().toLocaleDateString('en-IN', {
                 weekday: 'short',
                 day: 'numeric',
@@ -105,6 +123,20 @@ export default function App() {
             >
               <RefreshCw size={18} />
             </button>
+            {onLogout && (
+              <>
+                {ownerName && <span className="owner-name">{ownerName}</span>}
+                <Button
+                  className="logout-button"
+                  variant="secondary"
+                  disabled={checkoutBusy}
+                  onClick={onLogout}
+                >
+                  <LogOut size={17} />
+                  Sign out
+                </Button>
+              </>
+            )}
           </div>
         </header>
         <main>
