@@ -1,4 +1,4 @@
-"""SQLite connection and explicit transactions for the local store."""
+"""Choose SQLite files or PostgreSQL URLs with the same transaction interface."""
 
 from contextlib import contextmanager
 from pathlib import Path
@@ -50,6 +50,12 @@ CREATE INDEX IF NOT EXISTS payments_created ON payments(created_at);
 
 
 class Database:
+    def __new__(cls, path: Path | str):
+        if str(path).startswith(("postgres://", "postgresql://")):
+            from storepilot.postgres import PostgresDatabase
+            return PostgresDatabase(str(path), SCHEMA)
+        return super().__new__(cls)
+
     def __init__(self, path: Path | str):
         if str(path) != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
