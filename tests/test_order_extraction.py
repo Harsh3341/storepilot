@@ -24,6 +24,26 @@ def row(original='500 g sugar', code='SUGAR', quantity='500', unit='g', reason=N
 
 
 class DraftTests(unittest.TestCase):
+    def test_numeric_brand_and_price_do_not_supply_packet_counts(self):
+        catalogue = {**CATALOGUE, 'FIVE-STAR': Product('FIVE-STAR', '5 Star chocolate', 'piece', Decimal('10.00'))}
+        for original, code, quantity in (
+                ('5 Star chocolate', 'FIVE-STAR', '5'), ('soap ₹5', 'SOAP', '5'),
+                ('soap Rs 5', 'SOAP', '5')):
+            with self.subTest(original=original):
+                draft = validate_draft({'items': [row(original, code, quantity, 'piece')]}, catalogue, original)
+                self.assertIsNone(draft['rows'][0]['quantity'])
+        for original, quantity in (('2 5 Star chocolate', '2'), ('5 pieces 5 Star chocolate', '5')):
+            draft = validate_draft({'items': [row(original, 'FIVE-STAR', quantity, 'piece')]}, catalogue, original)
+            self.assertIsNone(draft['rows'][0]['reason'])
+
+    def test_loose_quantity_evidence_never_matches_a_numeric_suffix(self):
+        for original, quantity in (('.5kg sugar', '5'), ('-1kg sugar', '1'), ('1.5kg sugar', '5')):
+            with self.subTest(original=original):
+                draft = validate_draft({'items': [row(original, 'SUGAR', quantity, 'kg')]}, CATALOGUE, original)
+                self.assertIsNone(draft['rows'][0]['quantity'])
+        draft = validate_draft({'items': [row('.5kg sugar', 'SUGAR', '0.5', 'kg')]}, CATALOGUE, '.5kg sugar')
+        self.assertIsNone(draft['rows'][0]['reason'])
+
     def test_loose_goods_do_not_invent_amount_or_unit_from_a_product_name(self):
         for original in ('sugar', 'sugar please', '1 sugar'):
             with self.subTest(original=original):

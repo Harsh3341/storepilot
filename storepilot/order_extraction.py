@@ -43,25 +43,43 @@ COUNT_WORDS = {
 }
 
 
-def _explicit_piece_count(original, quantity):
+NUMBER = r'(?:\d+(?:\.\d+)?|\.\d+)'
+NUMBER_START = r'(?<![\w.+-])'
+
+
+def _without_money(source):
+    source = re.sub(r'(?:₹|(?<!\w)rs\.?|(?<!\w)inr)\s*' + NUMBER, ' ', source)
+    return re.sub(NUMBER_START + NUMBER + r'\s*(?:rupees?|रुपये|रुपए)(?!\w)', ' ', source)
+
+
+def _explicit_piece_count(original, quantity, product):
     # Remove sizes before looking for a count: "Lux 100g" is not one piece.
     without_sizes = re.sub(
         r'\d+(?:\.\d+)?\s*(?:kilograms?|grams?|litres?|liters?|kg|gm|g|ml|l|ग्राम|किलो|लीटर)(?!\w)',
-        ' ', original.casefold())
+        ' ', _without_money(original.casefold()))
     wanted = Decimal(quantity)
-    numbers = re.findall(r'(?<!\w)\d+(?:\.\d+)?(?!\w)', without_sizes)
-    if any(Decimal(number) == wanted for number in numbers):
+    # A labelled count is explicit even for numeric brands such as 5 Star.
+    labelled = re.findall(NUMBER_START + '(' + NUMBER + r')\s*(?:pieces?|pcs|packets?|packs?|पीस|पैकेट)(?!\w)', without_sizes)
+    if any(Decimal(number) == wanted for number in labelled):
         return True
-    return any(re.search(r'(?<!\w)' + re.escape(word) + r'(?!\w)', without_sizes)
-               for word in COUNT_WORDS.get(int(wanted), ()))
+    identity = (product.name + ' ' + product.code).casefold()
+    identity_numbers = {Decimal(number) for number in re.findall(NUMBER, identity)}
+    identity_numbers.update(Decimal(count) for count, words in COUNT_WORDS.items()
+                            if any(re.search(r'(?<!\w)' + re.escape(word) + r'(?!\w)', identity) for word in words))
+    numbers = re.findall(NUMBER_START + NUMBER + r'(?![\w.])', without_sizes)
+    if wanted not in identity_numbers and any(Decimal(number) == wanted for number in numbers):
+        return True
+    return wanted not in identity_numbers and any(
+        re.search(r'(?<!\w)' + re.escape(word) + r'(?!\w)', without_sizes)
+        for word in COUNT_WORDS.get(int(wanted), ()))
 
 
 def _explicit_loose_quantity(original, kilograms):
     units = r'kilograms?|kilos?|kg|किलो|grams?|gm|g|ग्राम'
     def as_kg(number, unit):
         return number / Decimal('1000') if unit in ('g', 'gm', 'gram', 'grams', 'ग्राम') else number
-    source = original.casefold()
-    for number, unit in re.findall(r'(?<!\w)(\d+(?:\.\d+)?)\s*(' + units + r')(?!\w)', source):
+    source = _without_money(original.casefold())
+    for number, unit in re.findall(NUMBER_START + '(' + NUMBER + r')\s*(' + units + r')(?!\w)', source):
         if as_kg(Decimal(number), unit) == kilograms:
             return True
     words = {str(count): names for count, names in COUNT_WORDS.items()}
@@ -100,7 +118,7 @@ def validate_draft(payload: dict, catalogue: dict, text: str) -> dict:
         else:
             try:
                 kilograms = selling_quantity(product, Selection(product.code, item['quantity'], item['unit']))
-                if product.unit == 'piece' and not _explicit_piece_count(item['original'], item['quantity']):
+                if product.unit == 'piece' and not _explicit_piece_count(item['original'], item['quantity'], product):
                     reason = 'Confirm the number of packets or pieces. Pack size does not supply a count.'
                     item['quantity'] = None
                 elif product.unit == 'kg' and not _explicit_loose_quantity(item['original'], kilograms):
