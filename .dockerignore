@@ -1,0 +1,14 @@
+.git
+.venv
+.env
+.env.*
+docs
+practice
+tests
+backups
+__pycache__
+**/__pycache__
+frontend/node_modules
+frontend/dist
+data/*.sqlite3*
+data/*-login.txt

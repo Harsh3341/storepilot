@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: storepilot
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: STOREPILOT_ENV
+        value: production
+      - key: STOREPILOT_DATABASE_URL
+        sync: false
+      - key: STOREPILOT_OWNER_USERNAME
+        value: owner
+      - key: STOREPILOT_OWNER_PASSWORD_HASH
+        sync: false

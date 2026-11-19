@@ -2,7 +2,7 @@
 
 ## Project
 
-StorePilot helps a single general-store owner manage products, sales, inventory, orders, and credit balances. The current milestone is a React PWA interface, FastAPI, and SQLite. Public deployment requires HTTPS and production authentication; PostgreSQL and AI list extraction are later milestones.
+StorePilot helps a single general-store owner manage products, sales, inventory, orders, and credit balances. The current milestone is a React PWA, FastAPI, owner authentication, SQLite locally, and PostgreSQL on Render + Neon free tiers for testing. Public deployment requires HTTPS and production mode. AI list extraction is a later milestone.
 
 ## Commands
 
@@ -12,9 +12,12 @@ Run from the repository root with Python 3.12 or newer:
 python -m unittest discover -s tests -v
 python -m storepilot --demo
 python -m storepilot
+python -m storepilot.manage setup-owner --username owner
+python -m storepilot.manage backup backups/store.json
 python -m uvicorn storepilot.api:create_app --factory --host 127.0.0.1 --port 8000
 cd frontend
 pnpm build
+pnpm format:check
 ```
 
 Install Python dependencies from requirements-dev.txt and frontend dependencies from the committed pnpm lockfile. See README.md for Windows setup.
@@ -30,6 +33,9 @@ Install Python dependencies from requirements-dev.txt and frontend dependencies 
 - Sample prices are illustrative; new stores start with zero stock. Draft bills are unsaved; receipts describe saved sales.
 - Persist money as integer paise and stock as integer grams or pieces. Checkout must atomically deduct aggregate stock, save receipt snapshots, record credit, and complete any linked order.
 - Preserve idempotency for sale, stock, and repayment retries. Never cache financial API responses or silently queue writes offline.
+- Keep cloud data in PostgreSQL; Render's free filesystem is temporary. Production must enforce owner authentication, secure cookies, origin validation, and CSRF on writes.
+- Never put database URLs or passwords in command arguments, logs, or Git. Configure cloud credentials through environment values; backups and credential files remain private.
+- Restore only into a new SQLite file or empty PostgreSQL database. Preserve receipt snapshots, balances, and retry IDs across migrations.
 
 ## Git workflow
 
