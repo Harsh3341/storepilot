@@ -1,6 +1,6 @@
 """Validated runtime configuration for local and hosted StorePilot."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -16,6 +16,8 @@ class Settings:
     owner_username: str = ''
     owner_password_hash: str = ''
     session_cookie: str = 'storepilot_session'
+    groq_api_key: str = field(default='', repr=False)
+    ai_model: str = 'openai/gpt-oss-120b'
 
     def __post_init__(self):
         if self.environment not in ('development', 'production'):
@@ -67,6 +69,8 @@ class Settings:
             database_url=os.environ.get('STOREPILOT_DATABASE_URL', ''),
             owner_username=os.environ.get('STOREPILOT_OWNER_USERNAME', ''),
             owner_password_hash=os.environ.get('STOREPILOT_OWNER_PASSWORD_HASH', ''),
+            groq_api_key=os.environ.get('GROQ_API_KEY', '').strip(),
+            ai_model=os.environ.get('STOREPILOT_AI_MODEL', 'openai/gpt-oss-120b'),
         )
         if on_render and settings.environment != 'production':
             raise ValueError('Render must use production mode.')

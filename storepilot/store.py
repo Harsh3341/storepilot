@@ -300,6 +300,7 @@ class Store:
 
     def create_order(self, data: dict) -> dict:
         body = {"customer_id": None, "customer_name": "", "source": "walk-in", "note": "", "items": [], **data}
+        request_id = body.pop('request_id', None)
         def action():
             if not body["note"].strip() and not body["items"]:
                 raise StoreError("An order needs a note or at least one item.")
@@ -318,7 +319,7 @@ class Store:
                 estimated = int(bill.total * Decimal("100"))
             cursor = self.connection.execute("INSERT INTO orders(customer_id,customer_name,source,note,status,created_at,items,estimated_total) VALUES(?,?,?,?,?,?,?,?)", (body["customer_id"], customer["name"] if customer else body["customer_name"].strip(), body["source"], body["note"].strip(), "pending", _now(), json.dumps(items), estimated))
             return self._order(self._row("orders", cursor.lastrowid))
-        return self._write("order", body, action)
+        return self._write("order", body, action, request_id)
 
     @staticmethod
     def _order(row) -> dict:

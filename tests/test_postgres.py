@@ -204,3 +204,34 @@ class PostgresStoreTests(store_tests.StoreTests):
             self.assertEqual(self.store.ledger(customer["id"])["customer"]["balance"], "10.00")
         finally:
             other.close()
+
+    def test_extraction_budget_and_order_retries_coordinate_across_connections(self):
+        from storepilot.order_extraction import ExtractionService
+        class Provider:
+            def extract(self, text, catalogue):
+                return {'items': []}
+        other = Store(self.path, self.catalogue)
+        barrier = Barrier(2)
+        def extract(store):
+            service = ExtractionService(store, Provider())
+            barrier.wait(timeout=10)
+            try:
+                return service.extract('rice')
+            except StoreError:
+                return None
+        try:
+            with ThreadPoolExecutor(max_workers=2) as workers:
+                futures = [workers.submit(extract, self.store), workers.submit(extract, other)]
+                results = [future.result(timeout=20) for future in futures]
+            self.assertEqual(sum(r is not None for r in results), 1)
+            self.assertEqual(ExtractionService(other, Provider()).status()['remaining'], 24)
+            body = {'note': '500 g rice', 'request_id': 'reviewed-pg-order',
+                    'items': [{'product_code': 'RICE', 'quantity': '500', 'unit': 'g'}]}
+            first = self.store.create_order(body)
+            self.assertEqual(other.create_order(body), first)
+            self.assertEqual(first['estimated_total'], '20.00')
+            self.assertEqual(len(other.orders()), 1)
+            self.assertEqual(other.sales(), [])
+            self.assertEqual(other.product('RICE')['stock'], '0')
+        finally:
+            other.close()

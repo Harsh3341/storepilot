@@ -79,12 +79,16 @@ class BillPreviewResponse(BaseModel):
 def create_app(catalogue_path: Path = DEFAULT_CATALOGUE,
                database_path: Path | str | None = None,
                frontend_directory: Path | None = None,
-               settings: Settings | None = None) -> FastAPI:
+               settings: Settings | None = None,
+               extraction_provider=None) -> FastAPI:
     """Create a persistent store; custom test catalogues are isolated by default."""
     from storepilot.store import Store
     from storepilot.store_api import make_store_router
     from storepilot.auth import Auth
     from storepilot.auth_api import make_auth_router
+    from storepilot.extraction_api import make_extraction_router
+    from storepilot.groq import GroqProvider
+    from storepilot.order_extraction import ExtractionService
 
     configuration = settings or Settings.from_environment(load_file=catalogue_path == DEFAULT_CATALOGUE)
     seed = load_catalogue(catalogue_path)
@@ -116,6 +120,10 @@ def create_app(catalogue_path: Path = DEFAULT_CATALOGUE,
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=configuration.trusted_hosts)
     app.include_router(make_auth_router(auth, configuration))
     app.include_router(make_store_router(store))
+    provider = extraction_provider
+    if provider is None and configuration.groq_api_key:
+        provider = GroqProvider(configuration.groq_api_key, configuration.ai_model)
+    app.include_router(make_extraction_router(ExtractionService(store, provider)))
 
     @app.middleware("http")
     async def protect_store(request: Request, call_next):

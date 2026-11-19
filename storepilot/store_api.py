@@ -73,6 +73,7 @@ class SaleCreate(Request):
 
 
 class OrderCreate(Request):
+    request_id: RequestId | None = None
     customer_id: Identifier | None = None
     customer_name: ShortText = ""
     source: Literal["walk-in", "whatsapp"] = "walk-in"
